@@ -2,7 +2,7 @@ package repository
 
 import (
 	"github.com/zxnlx/common"
-	"github.com/zxnlx/pod/domain/model"
+	"github.com/zxnlx/svc/domain/model"
 	"gorm.io/gorm"
 )
 

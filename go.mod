@@ -1,4 +1,4 @@
-module github.com/zxnlx/pod
+module github.com/zxnlx/svc
 
 go 1.16
 

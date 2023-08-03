@@ -3,9 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
+	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/registry"
+	"github.com/asim/go-micro/v3/server"
 	"github.com/zxnlx/common"
-	//"github.com/zxnlx/pod/proto/pod"
+	"github.com/zxnlx/svc/domain/repository"
+	service2 "github.com/zxnlx/svc/domain/service"
+	"github.com/zxnlx/svc/handler"
+	"github.com/zxnlx/svc/proto/svc"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"k8s.io/client-go/kubernetes"
@@ -15,7 +20,7 @@ import (
 
 var (
 	serviceHost = "host.docker.internal"
-	servicePort = "8083"
+	servicePort = "8084"
 
 	// 注册中心配置
 	consulHost       = serviceHost
@@ -84,36 +89,41 @@ func initK8s() *kubernetes.Clientset {
 }
 
 func main() {
-	//c := initRegistry()
-	//db := initConfig()
-	//
-	//clientSet := initK8s()
-	//
-	//// 日志
-	//// ./filebeat -e -c filebeat.yml
-	//
-	//service := micro.NewService(
-	//	micro.Server(server.NewServer(func(options *server.Options) {
-	//		options.Advertise = "host.docker.internal:" + servicePort
-	//	})),
-	//	micro.Name("go.micro.service.pod"),
-	//	micro.Version("latest"),
-	//	micro.Registry(c),
-	//	micro.Address(":"+servicePort),
-	//)
-	//
-	//service.Init()
-	//
-	//dataService := service2.NewPodDataService(repository.NewPodRepository(db), clientSet)
-	//err := pod.RegisterPodHandler(service.Server(), &handler.PodHandler{PodDataService: dataService})
-	//if err != nil {
-	//	common.Fatal(err)
-	//	return
-	//}
-	//
-	//err = service.Run()
-	//if err != nil {
-	//	common.Fatal(err)
-	//	return
-	//}
+	c := initRegistry()
+	db := initConfig()
+
+	clientSet := initK8s()
+
+	service := micro.NewService(
+		micro.Server(server.NewServer(func(options *server.Options) {
+			options.Advertise = serviceHost + ":" + servicePort
+		})),
+		micro.Name("go.micro.service.svc"),
+		micro.Version("latest"),
+		micro.Registry(c),
+		micro.Address(":"+servicePort),
+	)
+
+	service.Init()
+
+	//只能执行一遍
+	err := repository.NewSvcRepository(db).InitTable()
+	if err != nil {
+		common.Fatal(err)
+		return
+	}
+
+	svcDataService := service2.NewSvcDataServices(repository.NewSvcRepository(db), clientSet)
+
+	err = svc.RegisterSvcHandler(service.Server(), &handler.SvcHandler{SvcDataService: svcDataService})
+	if err != nil {
+		common.Fatal(err)
+		return
+	}
+
+	// 启动服务
+	if err := service.Run(); err != nil {
+		//输出启动失败信息
+		common.Fatal(err)
+	}
 }

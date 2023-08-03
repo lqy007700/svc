@@ -4,45 +4,46 @@ import (
 	"context"
 	"errors"
 	"github.com/zxnlx/common"
-	"github.com/zxnlx/pod/domain/model"
-	"github.com/zxnlx/pod/domain/service"
+	"github.com/zxnlx/svc/domain/model"
+	"github.com/zxnlx/svc/domain/service"
+	"github.com/zxnlx/svc/proto/svc"
 )
 
-type PodHandler struct {
-	PodDataService service.IPodDataService
+type SvcHandler struct {
+	SvcDataService service.ISvcDataService
 }
 
-func (p *PodHandler) AddPod(ctx context.Context, info *pod.PodInfo, resp *pod.Response) error {
-	common.Info("Add Pod")
-	podModel := &model.Pod{}
-	err := common.SwapTo(info, podModel)
+func (s *SvcHandler) AddSvc(ctx context.Context, info *svc.SvcInfo, resp *svc.Response) error {
+	common.Info("Add Svc")
+	svcModel := &model.Svc{}
+	err := common.SwapTo(info, svcModel)
 	if err != nil {
 		common.Error(err)
 		return err
 	}
 
-	err = p.PodDataService.CreateToK8s(info)
-	if err != nil {
-		common.Error(err)
-		resp.Msg = err.Error()
-		return err
-	}
-
-	addPod, err := p.PodDataService.AddPod(podModel)
+	err = s.SvcDataService.CreateSvcToK8s(info)
 	if err != nil {
 		common.Error(err)
 		resp.Msg = err.Error()
 		return err
 	}
 
-	common.Info(addPod)
+	addSvc, err := s.SvcDataService.AddSvc(svcModel)
+	if err != nil {
+		common.Error(err)
+		resp.Msg = err.Error()
+		return err
+	}
+
+	common.Info(addSvc)
 	resp.Msg = "Add success"
 	return nil
 }
 
-func (p *PodHandler) DelPod(ctx context.Context, req *pod.PodId, resp *pod.Response) error {
-	common.Info("Del Pod")
-	info, err := p.PodDataService.FindPodById(req.Id)
+func (s *SvcHandler) DeleteSvc(ctx context.Context, req *svc.SvcId, resp *svc.Response) error {
+	common.Info("Del Svc")
+	info, err := s.SvcDataService.FindSvcById(req.Id)
 	if err != nil {
 		common.Error(err)
 		resp.Msg = err.Error()
@@ -50,14 +51,14 @@ func (p *PodHandler) DelPod(ctx context.Context, req *pod.PodId, resp *pod.Respo
 	}
 
 	if info == nil {
-		resp.Msg = "Pod Not Exist"
+		resp.Msg = "Svc Not Exist"
 		common.Error(resp.Msg)
 		return errors.New(resp.Msg)
 	}
 
-	err = p.PodDataService.DelForK8s(info)
+	err = s.SvcDataService.DeleteFromK8s(info)
 	if err != nil {
-		resp.Msg = "Pod Not Exist"
+		resp.Msg = "Svc Not Exist"
 		common.Error(resp.Msg)
 		return err
 	}
@@ -65,55 +66,55 @@ func (p *PodHandler) DelPod(ctx context.Context, req *pod.PodId, resp *pod.Respo
 	return nil
 }
 
-func (p *PodHandler) FindPodById(ctx context.Context, req *pod.PodId, info *pod.PodInfo) error {
-	podInfo, err := p.PodDataService.FindPodById(req.Id)
+func (s *SvcHandler) UpdateSvc(ctx context.Context, info *svc.SvcInfo, resp *svc.Response) error {
+	err := s.SvcDataService.UpdateSvcToK8s(info)
 	if err != nil {
 		return err
 	}
-	err = common.SwapTo(podInfo, info)
+
+	svcInfo, err := s.SvcDataService.FindSvcById(info.Id)
+	if err != nil {
+		return err
+	}
+
+	err = common.SwapTo(info, svcInfo)
+	if err != nil {
+		return err
+	}
+
+	err = s.SvcDataService.UpdateSvc(svcInfo)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PodHandler) UpdatePod(ctx context.Context, info *pod.PodInfo, res *pod.Response) error {
-	err := p.PodDataService.UpdateForK8s(info)
+func (s *SvcHandler) FindSvcByID(ctx context.Context, req *svc.SvcId, info *svc.SvcInfo) error {
+	svcInfo, err := s.SvcDataService.FindSvcById(req.Id)
 	if err != nil {
 		return err
 	}
-
-	podInfo, err := p.PodDataService.FindPodById(info.Id)
-	if err != nil {
-		return err
-	}
-
-	err = common.SwapTo(info, podInfo)
-	if err != nil {
-		return err
-	}
-
-	err = p.PodDataService.UpdatePod(podInfo)
+	err = common.SwapTo(svcInfo, info)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PodHandler) FindAllPod(ctx context.Context, all *pod.FindAll, list *pod.PodList) error {
-	allPod, err := p.PodDataService.FindAllPod()
+func (s *SvcHandler) FindAllSvc(ctx context.Context, all *svc.FindAll, allSvc *svc.AllSvc) error {
+	allSvcs, err := s.SvcDataService.FindAllSvc()
 	if err != nil {
 		return err
 	}
 
-	for _, v := range allPod {
-		podInfo := &pod.PodInfo{}
-		err = common.SwapTo(v, podInfo)
+	for _, v := range allSvcs {
+		svcInfo := &svc.SvcInfo{}
+		err = common.SwapTo(v, svcInfo)
 		if err != nil {
 			return err
 		}
 
-		list.PodList = append(list.PodList, podInfo)
+		allSvc.SvcInfo = append(allSvc.SvcInfo, svcInfo)
 	}
 	return nil
 }

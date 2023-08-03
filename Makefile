@@ -14,4 +14,4 @@ docker:
 
 .PHONY: run-docker
 run-docker:
-	sudo docker run -p 8083:8083 -v /Users/lqy007700/Data/config:/root/.kube/config -v /Users/lqy007700/Data/code/go-application/go-paas/svc/micro.log:/micro.log zxnl/svc
+	sudo docker run -p 8084:8084 -v /Users/lqy007700/Data/config:/root/.kube/config -v /Users/lqy007700/Data/code/go-application/go-paas/svc/micro.log:/micro.log zxnl/svc
